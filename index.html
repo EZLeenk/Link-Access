@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Link Access</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fafeff;
+      color: #474747;
+      padding: 40px 20px;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h1 {
+      color: #176285;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 16px;
+      margin: 10px 0 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #176285;
+      color: white;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #124f6d;
+    }
+
+    #results {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    #shortenedLink a {
+      color: #176285;
+      word-break: break-all;
+      text-decoration: none;
+    }
+
+    #shortenedLink a:hover {
+      text-decoration: underline;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .qr-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-top: 15px;
+    }
+
+    .qr-scan-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(23, 98, 133, 0.6);
+      animation: scanDown 1s ease-out forwards;
+      z-index: 2;
+      border-radius: 2px;
+    }
+
+    @keyframes scanDown {
+      from { top: 0; opacity: 1; }
+      to { top: 100%; opacity: 0; }
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Link Access</h1>
+    <p>Enter a URL to shorten and generate a QR code:</p>
+    <input type="text" id="urlInput" placeholder="https://example.com" />
+    <button id="submitButton">Submit</button>
+
+    <div id="results">
+      <p id="shortenedLink">Shortened Link:</p>
+      <p id="qrCodeLabel">Scan QR code below:</p>
+      <div id="qrcode" class="qr-wrapper"></div>
+    </div>
+  </div>
+
+  <script>
+    function typeText(element, htmlString, speed = 40) {
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = htmlString;
+      const fullText = tempDiv.textContent || tempDiv.innerText || "";
+      element.innerHTML = "";
+      let i = 0;
+      const interval = setInterval(() => {
+        element.textContent += fullText[i];
+        i++;
+        if (i >= fullText.length) {
+          element.innerHTML = htmlString; // Final real HTML
+          clearInterval(interval);
+        }
+      }, speed);
+    }
+
+    document.getElementById("submitButton").addEventListener("click", function () {
+      const url = document.getElementById("urlInput").value.trim();
+      const shortenedLinkP = document.getElementById("shortenedLink");
+      const qrCodeDiv = document.getElementById("qrcode");
+
+      shortenedLinkP.innerHTML = "Shortened Link:";
+      qrCodeDiv.innerHTML = "";
+
+      if (!url) {
+        shortenedLinkP.innerHTML = "<span class='error'>Please enter a URL.</span>";
+        return;
+      }
+
+      const apiUrl = "https://tinyurl.com/api-create.php?url=" + encodeURIComponent(url);
+
+      fetch(apiUrl)
+        .then(response => {
+          if (!response.ok) throw new Error("Network response was not OK");
+          return response.text();
+        })
+        .then(shortUrl => {
+          if (!shortUrl || shortUrl.includes("Error")) {
+            shortenedLinkP.innerHTML = `<span class='error'>Error shortening URL.</span>`;
+          } else {
+            const linkHTML = `Shortened Link: <a href="${shortUrl}" target="_blank">${shortUrl}</a>`;
+            typeText(shortenedLinkP, linkHTML);
+          }
+        })
+        .catch(error => {
+          console.error("Error:", error);
+          shortenedLinkP.innerHTML = `<span class='error'>Error shortening URL: ${error.message}</span>`;
+        });
+
+      const qr = new QRCode(qrCodeDiv, {
+        text: url,
+        width: 200,
+        height: 200
+      });
+
+      // Scan line effect after QR generated
+      setTimeout(() => {
+        const scanLine = document.createElement("div");
+        scanLine.className = "qr-scan-line";
+        qrCodeDiv.appendChild(scanLine);
+      }, 500);
+    });
+  </script>
+</body>
+</html>
